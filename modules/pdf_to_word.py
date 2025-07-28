@@ -1,23 +1,26 @@
-import PyPDF2
+from PyPDF2 import PdfReader
 from docx import Document
 
 
-def convert(pdf_path, docx_path, txt_path, title=None, author=None):
-    """Convert a digital PDF to docx and txt."""
-    text = ""
-    with open(pdf_path, "rb") as f:
-        reader = PyPDF2.PdfReader(f)
-        for page in reader.pages:
-            extracted = page.extract_text() or ""
-            text += extracted + "\n"
+def convert_pdf_to_word(
+    input_pdf_path: str,
+    output_docx_path: str,
+    *,
+    title: str | None = None,
+    author: str | None = None,
+) -> str:
+    """Convert a digital PDF file to a Word document."""
 
-    doc = Document()
+    document = Document()
     if title:
-        doc.add_heading(title, level=0)
+        document.add_heading(title, level=1)
     if author:
-        doc.add_paragraph(f"Author: {author}")
-    doc.add_paragraph(text)
-    doc.save(docx_path)
+        document.add_paragraph(f"Author: {author}")
 
-    with open(txt_path, "w", encoding="utf-8") as txt:
-        txt.write(text)
+    reader = PdfReader(input_pdf_path)
+    for page in reader.pages:
+        text = page.extract_text() or ""
+        document.add_paragraph(text)
+
+    document.save(output_docx_path)
+    return output_docx_path
