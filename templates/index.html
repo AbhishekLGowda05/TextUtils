@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html>
-<head><title>Kannada PDF to Word</title></head>
+<head>
+    <title>Kannada PDF to Word</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 <body>
     <h1>Upload Kannada PDF</h1>
-    <form method="POST" enctype="multipart/form-data">
+    <form method="POST" enctype="multipart/form-data" class="upload-form">
         <input type="file" name="pdf">
-        <button type="submit">Convert</button>
+        <button type="submit" class="convert-btn">Convert</button>
     </form>
+    <div id="download-section"></div>
 </body>
 </html>
