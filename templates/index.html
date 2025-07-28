@@ -1,10 +1,20 @@
 <!DOCTYPE html>
 <html>
-<head><title>Kannada PDF to Word</title></head>
+<head>
+    <title>Kannada PDF to Word</title>
+</head>
 <body>
     <h1>Upload Kannada PDF</h1>
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="pdf">
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <label>Title: <input type="text" name="title"></label><br>
+        <label>Author: <input type="text" name="author"></label><br>
+        <label>Type:
+            <select name="pdf_type">
+                <option value="digital">Digital</option>
+                <option value="scanned">Scanned</option>
+            </select>
+        </label><br>
+        <input type="file" name="pdf" required><br>
         <button type="submit">Convert</button>
     </form>
 </body>
