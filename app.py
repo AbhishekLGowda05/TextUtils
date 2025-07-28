@@ -10,7 +10,14 @@ CONVERTED_FOLDER = os.path.join("static", "converted")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CONVERTED_FOLDER, exist_ok=True)
 
+
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'uploads')
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # ~100 MB
+app.secret_key = 'secret-key'
+
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -40,5 +47,6 @@ def home():
     return render_template("index.html")
 
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     app.run(debug=True)
