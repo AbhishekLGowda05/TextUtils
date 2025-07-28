@@ -1,1 +1,6 @@
 flask
+pdf2image
+Pillow
+opencv-python-headless
+google-cloud-vision
+python-docx
