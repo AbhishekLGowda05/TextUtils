@@ -1,25 +1,28 @@
-import os
-from docx import Document
 from pdf2image import convert_from_path
+from docx import Document
 import pytesseract
 
 
-def convert(pdf_path, docx_path, txt_path, title=None, author=None):
-    """Convert a scanned PDF to docx and txt using OCR."""
-    text = ""
-    images = convert_from_path(pdf_path)
-    for img in images:
-        extracted = pytesseract.image_to_string(img, lang="eng")
-        text += extracted + "\n"
-        img.close()
+def ocr_pdf_to_word(
+    input_pdf_path: str,
+    output_docx_path: str,
+    *,
+    language: str = "kan",
+    title: str | None = None,
+    author: str | None = None,
+) -> str:
+    """Perform OCR on a scanned PDF and output a Word document."""
 
-    doc = Document()
+    document = Document()
     if title:
-        doc.add_heading(title, level=0)
+        document.add_heading(title, level=1)
     if author:
-        doc.add_paragraph(f"Author: {author}")
-    doc.add_paragraph(text)
-    doc.save(docx_path)
+        document.add_paragraph(f"Author: {author}")
 
-    with open(txt_path, "w", encoding="utf-8") as txt:
-        txt.write(text)
+    images = convert_from_path(input_pdf_path)
+    for img in images:
+        text = pytesseract.image_to_string(img, lang=language)
+        document.add_paragraph(text)
+
+    document.save(output_docx_path)
+    return output_docx_path

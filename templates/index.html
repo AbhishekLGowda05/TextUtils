@@ -1,21 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8">
     <title>Kannada PDF to Word</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-    <h1>Upload Kannada PDF</h1>
-    <form action="/upload" method="POST" enctype="multipart/form-data">
-        <label>Title: <input type="text" name="title"></label><br>
-        <label>Author: <input type="text" name="author"></label><br>
-        <label>Type:
-            <select name="pdf_type">
-                <option value="digital">Digital</option>
-                <option value="scanned">Scanned</option>
+<body class="container py-5">
+    <h1 class="mb-4 text-center">ಕನ್ನಡ PDF to Word</h1>
+    <form method="POST" enctype="multipart/form-data" class="mb-3">
+        <div class="mb-3">
+            <label class="form-label">ಶೀರ್ಷಿಕೆ</label>
+            <input type="text" name="title" class="form-control" placeholder="ಶೀರ್ಷಿಕೆ">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">ಲೇಖಕ</label>
+            <input type="text" name="author" class="form-control" placeholder="ಲೇಖಕ">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">PDF ಪ್ರಕಾರ</label>
+            <select name="pdf_type" class="form-select">
+                <option value="digital">ಡಿಜಿಟಲ್</option>
+                <option value="scanned">ಸ್ಕ್ಯಾನ್</option>
             </select>
-        </label><br>
-        <input type="file" name="pdf" required><br>
-        <button type="submit">Convert</button>
-    </form>
-</body>
-</html>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">ಕನ್ನಡ PDF</label>
+            <input type="file" name="pdf" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">ರೂಪಾಂತರಿಸಿ</button>

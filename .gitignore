@@ -1,2 +1,7 @@
-uploads/
+
 __pycache__/
+*.pyc
+uploads/
+static/converted/
+.env
+
