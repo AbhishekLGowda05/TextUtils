@@ -1,10 +1,12 @@
 import os
+
 from tempfile import TemporaryDirectory
 from pdf2image import convert_from_path
 from PIL import Image
 import cv2
 import numpy as np
 from google.cloud import vision
+
 from docx import Document
 from docx.shared import Inches
 
