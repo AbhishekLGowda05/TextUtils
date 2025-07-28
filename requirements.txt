@@ -1,5 +1,11 @@
 Flask
-PyPDF2
-python-docx
+pdfplumber
+pypdf
 pdf2image
+pillow
+google-cloud-vision
+python-docx
 pytesseract
+opencv-python-headless
+
+
