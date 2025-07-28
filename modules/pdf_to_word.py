@@ -1,96 +1,84 @@
 import os
-from pathlib import Path
-import tempfile
-import unicodedata
-from typing import Tuple
 
-import pdfplumber
+from tempfile import TemporaryDirectory
+from pdf2image import convert_from_path
+from PIL import Image
+import cv2
+import numpy as np
+from google.cloud import vision
+
 from docx import Document
 from docx.shared import Inches
 
 
-def _normalize_text(text: str) -> str:
-    """Return NFC-normalized text suitable for Kannada Unicode."""
-    return unicodedata.normalize("NFC", text or "")
+def _preprocess_image(image_path: str) -> str:
+    """Convert to grayscale, threshold and deskew image in place."""
+    img = Image.open(image_path).convert("L")
+    img_np = np.array(img)
+    _, thresh = cv2.threshold(img_np, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    coords = np.column_stack(np.where(thresh > 0))
+    angle = 0.0
+    if coords.size:
+        angle = cv2.minAreaRect(coords)[-1]
+        if angle < -45:
+            angle = -(90 + angle)
+        else:
+            angle = -angle
+    (h, w) = thresh.shape[:2]
+    center = (w // 2, h // 2)
+    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+    deskewed = cv2.warpAffine(thresh, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+    cv2.imwrite(image_path, deskewed)
+    return image_path
 
 
-def convert_pdf_to_docx(pdf_path: str, output_dir: str | None = None) -> Tuple[str, str]:
-    """Convert a PDF file to a DOCX with extracted text, tables and images.
+def _ocr_image(image_path: str, client: vision.ImageAnnotatorClient) -> str:
+    """Perform OCR on the image using Google Cloud Vision."""
+    with open(image_path, "rb") as img_file:
+        content = img_file.read()
+    image = vision.Image(content=content)
+    response = client.text_detection(image=image, image_context={"language_hints": ["kn"]})
+    if response.error.message:
+        raise RuntimeError(response.error.message)
+    texts = response.text_annotations
+    return texts[0].description if texts else ""
 
-    Parameters
-    ----------
-    pdf_path:
-        Path to the PDF file.
-    output_dir:
-        Directory to save the generated DOCX file. Defaults to the PDF's
-        directory.
 
-    Returns
-    -------
-    tuple
-        A tuple ``(docx_path, extracted_text)`` where ``docx_path`` is the path
-        of the generated document and ``extracted_text`` contains the full text
-        extracted from the PDF.
-    """
-    if output_dir is None:
-        output_dir = os.path.dirname(pdf_path)
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-
+def pdf_to_docx(pdf_path: str, docx_path: str = "output.docx", txt_path: str | None = None) -> tuple[str, str | None]:
+    """Convert a PDF to a DOCX with OCR and optional txt output."""
+    client = vision.ImageAnnotatorClient()
     document = Document()
-    extracted_parts: list[str] = []
+    all_text: list[str] = []
 
-    with pdfplumber.open(pdf_path) as pdf:
-        for page_index, page in enumerate(pdf.pages):
-            if page_index:
-                document.add_page_break()
+    with TemporaryDirectory() as tmpdir:
+        images = convert_from_path(pdf_path, fmt="png", output_folder=tmpdir)
+        for i, img in enumerate(images):
+            img_path = os.path.join(tmpdir, f"page_{i+1}.png")
+            img.save(img_path)
+            _preprocess_image(img_path)
+            text = _ocr_image(img_path, client)
+            document.add_picture(img_path, width=Inches(6))
+            document.add_paragraph(text)
+            all_text.append(text)
 
-            # extract and add plain text
-            page_text = _normalize_text(page.extract_text() or "")
-            if page_text:
-                document.add_paragraph(page_text)
-                extracted_parts.append(page_text)
+        document.save(docx_path)
 
-            # reconstruct tables
-            for tbl in page.extract_tables() or []:
-                if not tbl:
-                    continue
-                table = document.add_table(rows=len(tbl), cols=len(tbl[0]))
-                for r_idx, row in enumerate(tbl):
-                    for c_idx, cell in enumerate(row):
-                        table.cell(r_idx, c_idx).text = _normalize_text(
-                            str(cell) if cell is not None else ""
-                        )
-
-            # embed images
-            for img in page.images or []:
-                image_data = page.extract_image(img)
-                if not image_data:
-                    continue
-                img_bytes = image_data.get("image")
-                ext = image_data.get("ext", "png")
-                if not img_bytes:
-                    continue
-                with tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext}") as tmp:
-                    tmp.write(img_bytes)
-                    temp_name = tmp.name
-                document.add_picture(temp_name, width=Inches(5))
-                os.unlink(temp_name)
-
-    docx_filename = Path(pdf_path).stem + ".docx"
-    docx_path = os.path.join(output_dir, docx_filename)
-    document.save(docx_path)
-    full_text = "\n".join(extracted_parts)
-    return docx_path, full_text
+    full_text = "\n\n".join(all_text)
+    if txt_path:
+        with open(txt_path, "w", encoding="utf-8") as txt_file:
+            txt_file.write(full_text)
+    return docx_path, full_text if txt_path else None
 
 
-def convert_pdf(pdf_path: str, output_dir: str | None = None) -> Tuple[str, str]:
-    """Convert ``pdf_path`` to DOCX and also return extracted text.
+if __name__ == "__main__":
+    import argparse
 
-    This helper simply calls :func:`convert_pdf_to_docx` and writes the text to
-    a ``.txt`` file next to the generated document.
-    """
-    docx_path, text = convert_pdf_to_docx(pdf_path, output_dir)
-    txt_path = os.path.splitext(docx_path)[0] + ".txt"
-    with open(txt_path, "w", encoding="utf-8") as f:
-        f.write(text)
-    return docx_path, text
+    parser = argparse.ArgumentParser(description="Convert Kannada PDF to DOCX via OCR")
+    parser.add_argument("pdf", help="Path to the input PDF")
+    parser.add_argument("--docx", default="output.docx", help="Output DOCX path")
+    parser.add_argument("--txt", help="Optional output text path")
+    args = parser.parse_args()
+    docx_file, txt_content = pdf_to_docx(args.pdf, args.docx, args.txt)
+    print(f"DOCX saved to: {docx_file}")
+    if txt_content is not None:
+        print("Text extracted and saved.")
