@@ -36,10 +36,13 @@ def home():
             output_filename = f"{timestamp}.docx"
             output_path = os.path.join(CONVERTED_FOLDER, output_filename)
 
-            if pdf_type == "scanned":
-                ocr_pdf_to_word(input_path, output_path, title=title, author=author)
-            else:
-                convert_pdf_to_word(input_path, output_path, title=title, author=author)
+            try:
+                if pdf_type == "scanned":
+                    ocr_pdf_to_word(input_path, output_path, title=title, author=author)
+                else:
+                    convert_pdf_to_word(input_path, output_path, title=title, author=author)
+            except ValueError as e:
+                return render_template("index.html", error=str(e))
 
             download_link = url_for("static", filename=f"converted/{output_filename}")
             return render_template("index.html", download_link=download_link)
