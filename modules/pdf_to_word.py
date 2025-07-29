@@ -3,7 +3,7 @@ from PyPDF2.errors import PdfReadError
 from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.oxml.shared import OxmlElement, qn
+from docx.oxml.shared import qn
 import pdfplumber
 import unicodedata
 import logging
