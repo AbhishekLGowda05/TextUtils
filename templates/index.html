@@ -6,6 +6,9 @@
 </head>
 <body>
     <h1>Upload Kannada PDF</h1>
+    {% if error %}
+    <p class="error">{{ error }}</p>
+    {% endif %}
     <form method="POST" enctype="multipart/form-data" class="upload-form">
         <input type="file" name="pdf">
         <div class="pdf-type">
@@ -19,5 +22,6 @@
         <a href="{{ download_link }}">Download Converted File</a>
     </div>
     {% endif %}
+
 </body>
 </html>
