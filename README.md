@@ -27,6 +27,13 @@ This project is a simple Flask web application that converts Kannada PDF files t
    pip install google-cloud-vision
    ```
 
+3. **Install Poppler**
+   The `pdf2image` package relies on Poppler's command-line tools.
+   Install them with your system package manager or from the project website:
+   - macOS: `brew install poppler`
+   - Ubuntu/Debian: `sudo apt-get install poppler-utils`
+   - Windows: download the Poppler binaries and add them to your `PATH`.
+
 ## Setting up Google Cloud Vision credentials
 
 1. Create a project on Google Cloud Platform and enable the **Vision API**.
