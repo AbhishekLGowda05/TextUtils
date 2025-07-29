@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, url_for
+from flask import Flask, render_template, request, url_for, send_from_directory, after_this_request
 from datetime import datetime
 import os
 from modules.pdf_to_word import convert_pdf_to_word
@@ -40,18 +40,27 @@ def home():
 
             output_filename = f"{timestamp}.docx"
             output_path = os.path.join(CONVERTED_FOLDER, output_filename)
+            txt_filename = f"{timestamp}.txt"
+            txt_path = os.path.join(CONVERTED_FOLDER, txt_filename)
 
             try:
                 if pdf_type == "scanned":
                     ocr_pdf_to_word(
                         input_path,
                         output_path,
+                        txt_path,
                         title=title,
                         author=author,
                         use_google=use_google,
                     )
                 else:
-                    convert_pdf_to_word(input_path, output_path, title=title, author=author)
+                    convert_pdf_to_word(
+                        input_path,
+                        output_path,
+                        txt_path,
+                        title=title,
+                        author=author,
+                    )
             except ValueError as e:
                 return render_template("index.html", error=str(e))
             finally:
@@ -59,10 +68,30 @@ def home():
                 if os.path.exists(input_path):
                     os.remove(input_path)
 
-            download_link = url_for("static", filename=f"converted/{output_filename}")
-            return render_template("index.html", download_link=download_link)
+            download_docx = url_for("download", filename=output_filename)
+            download_txt = url_for("download", filename=txt_filename)
+            return render_template(
+                "index.html",
+                download_docx=download_docx,
+                download_txt=download_txt,
+            )
 
     return render_template("index.html")
+
+
+@app.route("/download/<path:filename>")
+def download(filename):
+    file_path = os.path.join(CONVERTED_FOLDER, filename)
+
+    @after_this_request
+    def remove_file(response):
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        finally:
+            return response
+
+    return send_from_directory(CONVERTED_FOLDER, filename, as_attachment=True)
 
 
 
