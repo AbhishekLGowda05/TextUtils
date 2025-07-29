@@ -12,6 +12,7 @@ import unicodedata
 import cv2
 import numpy as np
 import logging
+from typing import Optional
 from .legacy_kannada import (
     post_process_kannada_text,
     detect_legacy_encoding,
@@ -70,31 +71,58 @@ def _preprocess_image_for_kannada(img):
     
     return Image.fromarray(cleaned)
 
-def _perform_tesseract_ocr(image, language="kan"):
-    """Perform Tesseract OCR with Kannada-specific configuration."""
+def _perform_tesseract_ocr(image, language: str = "kan", *, timeout: Optional[int] = None) -> str:
+    """Perform Tesseract OCR with Kannada-specific configuration.
+
+    Parameters
+    ----------
+    image : PIL.Image
+        Image to process.
+    language : str, optional
+        OCR language code.
+    timeout : int, optional
+        Maximum seconds to allow Tesseract to run.
+    """
+
     try:
-        # Tesseract configuration for Kannada
-        custom_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=ಅ-ೞ೦-೯ '
-        
-        # First attempt with standard settings
+        custom_config = r"--oem 3 --psm 6 -c tessedit_char_whitelist=ಅ-ೞ೦-೯ "
+
+        logger.debug("Calling Tesseract OCR")
         text = pytesseract.image_to_string(
-            image, 
+            image,
             lang=language,
-            config=custom_config
+            config=custom_config,
+            timeout=timeout or 0,
         )
-        
-        # If no Kannada detected, try without whitelist
+
         if not is_kannada_text(text):
-            logger.warning("No Kannada detected with whitelist, trying without restrictions")
-            text = pytesseract.image_to_string(image, lang=language)
-        
+            logger.warning(
+                "No Kannada detected with whitelist, trying without restrictions"
+            )
+            text = pytesseract.image_to_string(
+                image, lang=language, timeout=timeout or 0
+            )
+
         return text
-        
+
+    except RuntimeError as e:
+        if "timeout" in str(e).lower():
+            logger.error(f"Tesseract OCR timed out after {timeout} seconds")
+            raise TimeoutError(
+                f"Tesseract OCR timed out after {timeout} seconds"
+            ) from e
+        logger.error(f"Tesseract OCR runtime error: {e}")
+        raise
     except Exception as e:
         logger.error(f"Tesseract OCR failed: {e}")
-        return ""
+        raise
 
-def _perform_google_vision_ocr(image, language="kan"):
+def _perform_google_vision_ocr(
+    image,
+    language: str = "kan",
+    *,
+    timeout: Optional[int] = None,
+) -> str:
     """Perform Google Vision OCR with error handling."""
     try:
         client = vision.ImageAnnotatorClient()
@@ -110,20 +138,26 @@ def _perform_google_vision_ocr(image, language="kan"):
         # Configure language hints
         image_context = vision.ImageContext(language_hints=[language])
         
-        # Perform OCR
+        logger.debug("Calling Google Vision OCR")
         response = client.document_text_detection(
             image=vision_image,
-            image_context=image_context
+            image_context=image_context,
+            timeout=timeout,
         )
         
         if response.error.message:
             raise Exception(f"Google Vision API error: {response.error.message}")
         
         return response.full_text_annotation.text if response.full_text_annotation else ""
-        
+
     except Exception as e:
+        if "deadline" in str(e).lower():
+            logger.error(f"Google Vision OCR timed out after {timeout} seconds")
+            raise TimeoutError(
+                f"Google Vision OCR timed out after {timeout} seconds"
+            ) from e
         logger.error(f"Google Vision OCR failed: {e}")
-        return ""
+        raise
 
 def _check_tesseract_kannada():
     """Check if Tesseract has Kannada language support installed."""
@@ -162,6 +196,7 @@ def ocr_pdf_to_word(
     author: str | None = None,
     use_google: bool = False,
     vision_page_limit: int | None = None,
+    ocr_timeout: Optional[int] = 60,
 ) -> tuple[str, str]:
     """Perform OCR on a scanned PDF and output a Word document.
 
@@ -181,6 +216,8 @@ def ocr_pdf_to_word(
         If True, use Google Cloud Vision for OCR. Otherwise use Tesseract.
     vision_page_limit: int, optional
         Limit Vision OCR to the first N pages to control costs.
+    ocr_timeout: int, optional
+        Abort OCR calls if they exceed this many seconds.
         
     Returns
     -------
@@ -196,6 +233,10 @@ def ocr_pdf_to_word(
         )
     
     # Initialize document
+    logger.info(
+        f"Starting OCR conversion: input='{input_pdf_path}', output='{output_docx_path}'"
+    )
+
     document = Document()
     
     # Set up output paths
@@ -219,11 +260,13 @@ def ocr_pdf_to_word(
             # Convert PDF to images
             logger.info(f"Converting PDF to images: {input_pdf_path}")
             images = convert_from_path(
-                input_pdf_path, 
-                output_folder=temp_dir, 
+                input_pdf_path,
+                output_folder=temp_dir,
                 fmt="png",
                 dpi=300  # Higher DPI for better OCR
             )
+
+            logger.debug(f"Converted {len(images)} pages to images")
             
             total_pages = len(images)
             logger.info(f"Processing {total_pages} pages")
@@ -252,10 +295,16 @@ def ocr_pdf_to_word(
                 # Perform OCR
                 if use_vision_for_page:
                     logger.info(f"Using Google Vision for page {page_num}")
-                    text = _perform_google_vision_ocr(processed_img, language)
+                    logger.debug("Invoking Google Vision API")
+                    text = _perform_google_vision_ocr(
+                        processed_img, language, timeout=ocr_timeout
+                    )
                 else:
                     logger.info(f"Using Tesseract for page {page_num}")
-                    text = _perform_tesseract_ocr(processed_img, language)
+                    logger.debug("Invoking Tesseract")
+                    text = _perform_tesseract_ocr(
+                        processed_img, language, timeout=ocr_timeout
+                    )
                 
                 # Detect legacy encoding
                 is_legacy = detect_legacy_encoding(text)
@@ -317,6 +366,7 @@ def ocr_pdf_to_word(
     
     # Save Word document
     try:
+        logger.debug("Saving Word document")
         document.save(output_docx_path)
         logger.info(f"Word document saved: {output_docx_path}")
     except Exception as e:
@@ -325,6 +375,7 @@ def ocr_pdf_to_word(
     
     # Save text file
     try:
+        logger.debug("Saving text file")
         with open(output_txt_path, "w", encoding="utf-8") as f:
             f.write(full_text)
         logger.info(f"Text file saved: {output_txt_path}")
