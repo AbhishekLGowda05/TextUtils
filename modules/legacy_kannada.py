@@ -71,7 +71,7 @@ LEGACY_TO_UNICODE = {
     "ಚx": "ಚ",
     "ಾð": "ಾತ",
     "DVಗ": "ದ್ವಿಗ",
-    "ಬæೂ": "ಬೊ",
+    "ಬæೂ": "ಬೊ",
     "ಜÝಗ": "ಜ್ಞಗ",
     "Áವಆ": "ಅವ",
     "åನ": "ಾನ",
@@ -168,7 +168,6 @@ LEGACY_TO_UNICODE = {
     # Common OCR artifacts
     "ÁV": "",
     "Áಜ": "ಅಜ",
-    "ÁV": "",
     "ೀß": "ೀ",
     "ಾ¼": "ಾದ",
     "ೆ½": "ೆ",
@@ -184,7 +183,6 @@ LEGACY_TO_UNICODE = {
     "qಾ": "ಗಾ",
     "Áಗ": "ಅಗ",
     "ªÁ": "",
-    "ÁV": "",
     "zೆ": "ಜೆ",
     "Ýೂ": "ೂ",
     "ªೆ": "ೆ",
@@ -197,12 +195,9 @@ LEGACY_TO_UNICODE = {
     "åQ": "ಾ",
     "Û": "",
     "ಸé": "ಸೆ",
-    "Æ": "ು",
     "Aೆ": "ೆ",
-    "æೂ": "ೊ",
-    "zೆ": "ಜೆ",
+    "æೂ": "ೊ",
     "ುೂ": "ೂ",
-    "Æ": "ು",
     "AೆÜ": "ೆ",
     "ಸA": "ಸ",
     "Wಾ": "ವಾ",
@@ -218,20 +213,15 @@ LEGACY_TO_UNICODE = {
     "ಜÝಕ": "ಜ್ಞಕ",
     "èz": "ೆ",
     "ತೆ": "ತೆ",
-    "ÁZ": "ಅ",
-    "ೆU": "ೆ",
-    "ೊ": "ೊ",
-    "ಸA": "ಸ",
+    "ೊ": "ೊ",
     "ªÁಜ": "ಜ",
     "Kಏ": "ಕ",
     "ðರ": "ತರ",
     "¹Z": "",
-    "Áಗ": "ಅಗ",
-    "ವಆ": "ವ",
     "ಯರP": "ಯರಪ",
     "ೆುA": "ೆ",
     "ರz": "ರಜ",
-    "ೆÝೂ": "ೊ",
+    "ೆÝೂ": "ೊ",
     "ªೆೆ": "ೆ",
     "Áæx": "ಅ",
     "ಾಾೀ": "ಾ",
@@ -244,51 +234,70 @@ LEGACY_TO_UNICODE = {
     "ೂರ": "ೂರ",
     "ಚü": "ಚ",
     "Áæ": "ಅ",
-    "Æ": "ು",
     "ಸAU": "ಸ",
     "ಾæಸ": "ಾಸ",
     "ÁVz": "",
-    "ೆ": "ೆ",
 }
 
-# Enhanced OCR misrecognitions for Kannada
+# Common OCR misrecognitions for Kannada
 OCR_CORRECTIONS = {
     # Common Tesseract misrecognitions
     "0": "೦", "1": "೧", "2": "೨", "3": "೩", "4": "೪",
     "5": "೫", "6": "೬", "7": "೭", "8": "೮", "9": "೯",
     
-    # Character confusions from your sample
+    # Character confusions
     "o": "ೊ", "O": "ಒ", "e": "ೆ", "u": "ು", "i": "ಿ", "a": "ಅ",
     "|": "ಲ್", "l": "ಲ", "I": "ಇ", "S": "ಸ", "m": "ಮ", "n": "ನ",
     "r": "ರ", "t": "ತ", "d": "ದ", "p": "ಪ", "b": "ಬ", "k": "ಕ",
     "g": "ಗ", "j": "ಜ", "c": "ಚ", "h": "ಹ", "y": "ಯ", "v": "ವ", "w": "ವ",
-    
-    # Symbol corrections
-    "Á": "", "ಾ¼": "ಾದ", "ೀß": "ೀ", "ೆ½": "ೆ", "ಾÛ": "ಾ",
-    "ೂ¹": "ೂ", "ಜÝ": "ಜ್ಞ", "zೆ": "ಜೆ", "ÁV": "", "ªÁ": "",
-    "ೀà": "ೀ", "ಾå": "ಾ", "ೆè": "ೆ", "Uಾ": "ದಾ", "ಾA": "ಾ",
-    "qಾ": "ಗಾ", "åಏ": "ಾ", "ಸÛ": "ಸಂ", "¼ಾ": "ದಾ", "ೀ¹": "ೀ",
-    "ಜA": "ಜ", "ವA": "ವ", "æÆ": "ೆ", "üÁ": "", "Åz": "",
-    
-    # Complex patterns
-    "MAಜ": "ಮಜ", "DVಗ": "ದ್ವಿಗ", "ಬæೂ": "ಬೊ", "ಜÝಗ": "ಜ್ಞಗ",
-    "ದÕಗ": "ದಾಗ", "ಸÛಡ": "ಸಂಡ", "zsಾ": "ಸಾ", "ಚzs": "ಚಸ",
-    "DನA": "ದನ", "ಬಡëತ": "ಬಡತ", "EÁಸ": "ಇಸ", "ಗಏರ": "ಗರ",
-    "ಖÁA": "ಖ", "Dzೆ": "ದಿ", "ೂಾº": "ೂಸ", "ರ¹ವ": "ರವ",
-    "ಮಆª": "ಮ", "ಡೊ": "ಡೊ", "ತªÁ": "ತ", "ಾªÁ": "ಾ",
 }
 
-# ...existing code for ranges, functions etc. remains the same...
+# Kannada Unicode ranges for validation
+KANNADA_UNICODE_RANGES = [
+    (0x0C80, 0x0CFF),  # Kannada block
+    (0x200C, 0x200D),  # Zero-width joiner/non-joiner
+]
+
+def is_kannada_text(text: str) -> bool:
+    """Check if text contains Kannada characters."""
+    if not text.strip():
+        return False
+    
+    kannada_chars = 0
+    total_chars = 0
+    
+    for char in text:
+        if char.isspace() or char in '.,!?;:':
+            continue
+        total_chars += 1
+        char_code = ord(char)
+        
+        for start, end in KANNADA_UNICODE_RANGES:
+            if start <= char_code <= end:
+                kannada_chars += 1
+                break
+    
+    return total_chars > 0 and (kannada_chars / total_chars) > 0.3
+
+def normalize_unicode(text: str) -> str:
+    """Normalize Unicode text to NFC form for proper Kannada rendering."""
+    # First normalize to NFC (Canonical Decomposition + Canonical Composition)
+    normalized = unicodedata.normalize('NFC', text)
+    
+    # Remove any stray combining marks that might cause rendering issues
+    normalized = re.sub(r'[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF]', '', normalized)
+    
+    return normalized
 
 def clean_ocr_artifacts(text: str) -> str:
-    """Enhanced cleaning for complex OCR artifacts."""
+    """Clean common OCR artifacts from Kannada text."""
     # Remove multiple spaces
     text = re.sub(r'\s+', ' ', text)
     
     # Remove isolated punctuation marks
     text = re.sub(r'\s+[.,:;!?]\s+', ' ', text)
     
-    # Fix broken word boundaries - more conservative approach
+    # Fix broken word boundaries
     text = re.sub(r'([ಕ-ೞ])([ಕ-ೞ])', r'\1 \2', text)
     
     # Remove common OCR artifacts
@@ -299,10 +308,121 @@ def clean_ocr_artifacts(text: str) -> str:
     # Remove non-printable characters except Kannada joiners
     text = re.sub(r'[^\u0C80-\u0CFF\u200C\u200D\s\w.,!?;:()\-೦-೯]', '', text)
     
-    # Fix common spacing issues
-    text = re.sub(r'([ಕ-ೞ])([೦-೯])', r'\1 \2', text)  # Add space between letter and number
-    text = re.sub(r'([೦-೯])([ಕ-ೞ])', r'\1 \2', text)  # Add space between number and letter
-    
     return text.strip()
 
-# ...rest of the existing functions remain the same...
+def convert_legacy_to_unicode(text: str) -> str:
+    """Convert legacy Kannada text (e.g., Nudi/KGP/Baraha) to Unicode."""
+    if not text:
+        return ""
+    
+    result = text
+    
+    # Apply legacy mappings (longer sequences first)
+    for legacy, unicode_char in sorted(LEGACY_TO_UNICODE.items(), key=lambda x: -len(x[0])):
+        result = result.replace(legacy, unicode_char)
+    
+    return result
+
+def fix_ocr_errors(text: str) -> str:
+    """Fix common OCR recognition errors in Kannada text."""
+    if not text:
+        return ""
+    
+    result = text
+    
+    # Apply OCR corrections
+    for wrong, correct in OCR_CORRECTIONS.items():
+        result = result.replace(wrong, correct)
+    
+    return result
+
+def post_process_kannada_text(text: str, is_legacy: bool = False) -> str:
+    """
+    Complete post-processing pipeline for Kannada OCR text.
+    
+    Args:
+        text: Raw OCR output
+        is_legacy: Whether the text is from legacy encoding
+    
+    Returns:
+        Clean, normalized Unicode Kannada text
+    """
+    if not text:
+        return ""
+    
+    # Step 1: Convert legacy encoding if needed
+    if is_legacy:
+        text = convert_legacy_to_unicode(text)
+    
+    # Step 2: Fix common OCR errors
+    text = fix_ocr_errors(text)
+    
+    # Step 3: Clean OCR artifacts
+    text = clean_ocr_artifacts(text)
+    
+    # Step 4: Normalize Unicode
+    text = normalize_unicode(text)
+    
+    return text
+
+def detect_legacy_encoding(text: str) -> bool:
+    """
+    Detect if text contains legacy Kannada encoding.
+    
+    Returns:
+        True if legacy encoding is detected
+    """
+    if not text:
+        return False
+    
+    # Check for common legacy encoding markers
+    legacy_indicators = ["AiÀÄ", "ªÀ", "£À", "PÀ", "gÀ", "µÀ", "Á", "À", "Ä"]
+    
+    for indicator in legacy_indicators:
+        if indicator in text:
+            return True
+    
+    # Check if text has very few actual Kannada Unicode characters
+    return not is_kannada_text(text) and len(text.strip()) > 0
+
+def validate_kannada_output(text: str) -> Tuple[bool, List[str]]:
+    """
+    Validate the quality of Kannada text output.
+    
+    Returns:
+        Tuple of (is_valid, list_of_issues)
+    """
+    issues = []
+    
+    if not text.strip():
+        issues.append("Empty or whitespace-only text")
+        return False, issues
+    
+    # Check if it contains Kannada characters
+    if not is_kannada_text(text):
+        issues.append("No valid Kannada characters detected")
+    
+    # Check for common OCR artifacts
+    if re.search(r'[^\u0C80-\u0CFF\u200C\u200D\s\w.,!?;:()\-೦-೯]', text):
+        issues.append("Contains non-Kannada artifacts")
+    
+    # Check for excessive punctuation or numbers
+    punct_ratio = len(re.findall(r'[.,!?;:]', text)) / len(text) if text else 0
+    if punct_ratio > 0.3:
+        issues.append("Excessive punctuation detected")
+    
+    # Check for proper Unicode normalization
+    if text != unicodedata.normalize('NFC', text):
+        issues.append("Text not properly normalized")
+    
+    return len(issues) == 0, issues
+
+# Export main functions
+__all__ = [
+    'convert_legacy_to_unicode',
+    'post_process_kannada_text', 
+    'detect_legacy_encoding',
+    'validate_kannada_output',
+    'normalize_unicode',
+    'is_kannada_text'
+]

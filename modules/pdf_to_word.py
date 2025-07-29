@@ -1,5 +1,5 @@
-from pypdf import PdfReader
-from pypdf.errors import PdfReadError
+from PyPDF2 import PdfReader
+from PyPDF2.errors import PdfReadError
 from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
@@ -17,6 +17,8 @@ from .legacy_kannada import (
     normalize_unicode,
     is_kannada_text
 )
+
+# ...rest of existing code...
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

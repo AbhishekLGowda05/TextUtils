@@ -1,10 +1,13 @@
+# Core Dependencies (NumPy compatibility fix)
+numpy>=1.21.0,<2.0.0
+
 # Web Framework
 Flask==2.3.3
 Werkzeug==2.3.7
 
 # PDF Processing
 pdfplumber==0.10.3
-pypdf==3.1.0
+PyPDF2==3.0.1
 pdf2image==1.16.3
 
 # Image Processing and OCR
