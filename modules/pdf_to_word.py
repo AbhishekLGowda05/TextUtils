@@ -17,6 +17,7 @@ from .legacy_kannada import (
     normalize_unicode,
     is_kannada_text
 )
+from .ocr_to_word import ocr_pdf_to_word
 
 # ...rest of existing code...
 
@@ -168,8 +169,15 @@ def convert_pdf_to_word(
     *,
     title: str | None = None,
     author: str | None = None,
+    force_ocr: bool = False,
 ) -> tuple[str, str]:
-    """Convert a digital PDF file to a Word document with enhanced Kannada support."""
+    """Convert a digital PDF file to a Word document with enhanced Kannada support.
+
+    Parameters
+    ----------
+    force_ocr : bool
+        If True, skip text extraction validation and always fall back to OCR.
+    """
 
     # Initialize document
     document = Document()
@@ -199,6 +207,7 @@ def convert_pdf_to_word(
         raise ValueError("Uploaded file is not a valid PDF.") from exc
 
     full_text = ""
+    raw_full_text = ""
     processed_pages = 0
     total_images = 0
     total_tables = 0
@@ -219,6 +228,7 @@ def convert_pdf_to_word(
                 
                 # Extract text
                 raw_text = page.extract_text() or ""
+                raw_full_text += raw_text + "\n\n"
                 
                 if raw_text.strip():
                     # Process text with Kannada-specific handling
@@ -249,6 +259,22 @@ def convert_pdf_to_word(
 
         logger.info(f"Successfully processed {processed_pages}/{total_pages} pages")
         logger.info(f"Extracted {total_images} images and {total_tables} tables")
+
+        # Validate Kannada content across all pages
+        if not is_kannada_text(full_text) or force_ocr:
+            candidate_text = convert_legacy_to_unicode(raw_full_text)
+            if not force_ocr and is_kannada_text(candidate_text):
+                logger.info("Legacy conversion yielded valid Kannada text")
+                full_text = normalize_unicode(candidate_text)
+            else:
+                logger.info("Falling back to OCR processing")
+                return ocr_pdf_to_word(
+                    input_pdf_path,
+                    output_docx_path,
+                    output_txt_path,
+                    title=title,
+                    author=author,
+                )
 
     except Exception as e:
         logger.error(f"Error during PDF processing: {e}")
