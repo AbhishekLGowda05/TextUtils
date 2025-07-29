@@ -7,6 +7,7 @@ This project is a simple Flask web application that converts Kannada PDF files t
 - Upload a PDF file in Kannada and convert it to a Word document (`.docx`).
 - Optional OCR support using Google Cloud Vision for scanned documents or images.
 - Results can be downloaded as either a Word file or plain text (`.txt`).
+- Select whether the uploaded PDF is **digital** or **scanned** before converting.
 - Designed with minimal UI using an HTML form.
 
 ## Installation
@@ -43,6 +44,7 @@ Start the Flask development server with:
 python app.py
 ```
 Then open [http://localhost:5000](http://localhost:5000) in your browser. Use the form to upload a Kannada PDF file. After processing, a download link for the Word or text file will be provided.
+Before converting, select whether the PDF is a **digital** or **scanned** document so the application knows which conversion method to use.
 
 ## Configuration notes
 

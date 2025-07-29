@@ -8,8 +8,16 @@
     <h1>Upload Kannada PDF</h1>
     <form method="POST" enctype="multipart/form-data" class="upload-form">
         <input type="file" name="pdf">
+        <div class="pdf-type">
+            <label><input type="radio" name="pdf_type" value="digital" checked> Digital</label>
+            <label><input type="radio" name="pdf_type" value="scanned"> Scanned</label>
+        </div>
         <button type="submit" class="convert-btn">Convert</button>
     </form>
-    <div id="download-section"></div>
+    {% if download_link %}
+    <div id="download-section">
+        <a href="{{ download_link }}">Download Converted File</a>
+    </div>
+    {% endif %}
 </body>
 </html>
