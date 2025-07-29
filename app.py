@@ -61,6 +61,7 @@ def home():
         author = request.form.get("author", "").strip()
         pdf_type = request.form.get("pdf_type", "digital")
         use_google = request.form.get("use_google") == "on"
+        force_ocr = request.form.get("force_ocr") == "on"
 
         # Validate file
         is_valid, error_msg = validate_pdf_file(pdf_file)
@@ -129,6 +130,7 @@ def home():
                     txt_path,
                     title=title or None,
                     author=author or None,
+                    force_ocr=force_ocr,
                 )
                 
                 # Validate digital PDF results

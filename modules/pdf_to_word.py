@@ -194,6 +194,16 @@ def convert_pdf_to_word(
         core.author = author
     core.language = "kn-IN"  # Kannada locale
 
+    if force_ocr:
+        logger.info("Force OCR enabled - using OCR pipeline")
+        return ocr_pdf_to_word(
+            input_pdf_path,
+            output_docx_path,
+            output_txt_path,
+            title=title,
+            author=author,
+        )
+
     # Check for legacy fonts
     has_legacy_fonts = _detect_legacy_fonts_in_pdf(input_pdf_path)
     if has_legacy_fonts:
