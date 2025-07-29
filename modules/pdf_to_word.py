@@ -1,6 +1,7 @@
 from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
 from docx import Document
+from .legacy_kannada import convert_legacy_to_unicode
 
 
 def convert_pdf_to_word(
@@ -24,6 +25,7 @@ def convert_pdf_to_word(
         raise ValueError("Uploaded file is not a valid PDF.") from exc
     for page in reader.pages:
         text = page.extract_text() or ""
+        text = convert_legacy_to_unicode(text)
         document.add_paragraph(text)
 
     document.save(output_docx_path)
