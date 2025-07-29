@@ -54,6 +54,7 @@ Before converting, select whether the PDF is a **digital** or **scanned** docume
   app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
   ```
 - **Cleanup**: Temporary files created during conversion (such as intermediate images) should be removed after use to avoid filling the disk. Modify the conversion scripts in `modules/` to delete any files they create once conversion is completed.
+- **Error handling**: If a corrupt or invalid PDF is uploaded, the application will report an error instead of crashing.
 
 ## Obtaining the `.txt` file
 
