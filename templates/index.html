@@ -12,17 +12,30 @@
     <form method="POST" enctype="multipart/form-data" class="upload-form">
         <input type="file" name="pdf">
         <div class="pdf-type">
+            <label>ದಾಖಲೆ ಶೀರ್ಷಿಕೆ
+                <input type="text" name="title">
+            </label>
+        </div>
+        <div class="pdf-type">
+            <label>ಲೇಖಕ
+                <input type="text" name="author">
+            </label>
+        </div>
+        <div class="pdf-type">
             <label><input type="radio" name="pdf_type" value="digital" checked> Digital</label>
             <label><input type="radio" name="pdf_type" value="scanned"> Scanned</label>
         </div>
         <div class="pdf-type">
-            <label><input type="checkbox" name="use_google"> ಉನ್ನತ ಖಚಿತ್ತೆ OCR (Google Vision)</label>
+            <label><input type="checkbox" name="use_google"> ಉನ್ನತ ಖಚಿತತೆ OCR (Google Vision)</label>
         </div>
         <button type="submit" class="convert-btn">Convert</button>
     </form>
-    {% if download_link %}
+    {% if download_docx %}
     <div id="download-section">
-        <a href="{{ download_link }}">Download Converted File</a>
+        <a href="{{ download_docx }}">Download Word</a>
+        {% if download_txt %}
+        | <a href="{{ download_txt }}">Download Text</a>
+        {% endif %}
     </div>
     {% endif %}
 
