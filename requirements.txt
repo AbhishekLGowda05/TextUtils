@@ -7,5 +7,6 @@ google-cloud-vision
 python-docx
 pytesseract
 opencv-python-headless
+python-dotenv
 
 
