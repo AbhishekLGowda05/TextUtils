@@ -1,4 +1,5 @@
 from PyPDF2 import PdfReader
+from PyPDF2.errors import PdfReadError
 from docx import Document
 
 
@@ -17,7 +18,10 @@ def convert_pdf_to_word(
     if author:
         document.add_paragraph(f"Author: {author}")
 
-    reader = PdfReader(input_pdf_path)
+    try:
+        reader = PdfReader(input_pdf_path, strict=False)
+    except PdfReadError as exc:
+        raise ValueError("Uploaded file is not a valid PDF.") from exc
     for page in reader.pages:
         text = page.extract_text() or ""
         document.add_paragraph(text)
