@@ -5,3 +5,10 @@ uploads/
 static/converted/
 .env
 
+# Ignore environment and credentials
+.env
+service_account.json
+
+# Ignore virtual environment
+venv/
+# Ignore IDE specific files
