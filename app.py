@@ -61,7 +61,7 @@ def home():
         author = request.form.get("author", "").strip()
         pdf_type = request.form.get("pdf_type", "digital")
         use_google = request.form.get("use_google") == "on"
-        force_ocr = request.form.get("force_ocr") == "on"
+        debug_mode = request.form.get("debug_mode") == "on"  # Add debug mode
 
         # Validate file
         is_valid, error_msg = validate_pdf_file(pdf_file)
@@ -86,14 +86,14 @@ def home():
 
             # Log processing parameters
             logger.info(f"Processing PDF: type={pdf_type}, use_google={use_google}, "
-                       f"title='{title}', author='{author}'")
+                       f"debug_mode={debug_mode}, title='{title}', author='{author}'")
 
             if pdf_type == "scanned":
                 # Process scanned PDF with OCR
                 logger.info("Processing scanned PDF with OCR")
                 
-                # Set vision page limit to control costs (first 5 pages for testing)
-                vision_page_limit = 5 if use_google else None
+                # Set vision page limit to control costs (increased for better coverage)
+                vision_page_limit = 20 if use_google else None
                 
                 docx_path, txt_path_result = ocr_pdf_to_word(
                     input_path,
@@ -103,6 +103,8 @@ def home():
                     author=author or None,
                     use_google=use_google,
                     vision_page_limit=vision_page_limit,
+                    ocr_timeout=60,  # Increased timeout for better processing
+                    debug_mode=debug_mode,  # Pass debug mode
                 )
                 
                 # Validate OCR results
@@ -130,7 +132,6 @@ def home():
                     txt_path,
                     title=title or None,
                     author=author or None,
-                    force_ocr=force_ocr,
                 )
                 
                 # Validate digital PDF results

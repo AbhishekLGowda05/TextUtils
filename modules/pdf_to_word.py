@@ -9,6 +9,7 @@ import unicodedata
 import logging
 from tempfile import TemporaryDirectory
 import os
+import re
 from .legacy_kannada import (
     convert_legacy_to_unicode,
     post_process_kannada_text,
@@ -17,9 +18,7 @@ from .legacy_kannada import (
     normalize_unicode,
     is_kannada_text
 )
-from .ocr_to_word import ocr_pdf_to_word
-
-# ...rest of existing code...
+from .hybrid_pdf_detector import detect_pdf_type, extract_images_from_pdf
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,7 +32,7 @@ def _detect_legacy_fonts_in_pdf(pdf_path: str) -> bool:
         # Check font names in the PDF
         legacy_font_indicators = [
             'Nudi', 'BRH', 'Baraha', 'KGP', 'Kedage', 'Malige',
-            'Akshar', 'Hubballi', 'Mallige', 'Sampige'
+            'Akshar', 'Hubballi', 'Mallige', 'Sampige', 'Tunga'
         ]
         
         for page in reader.pages:
@@ -55,23 +54,83 @@ def _detect_legacy_fonts_in_pdf(pdf_path: str) -> bool:
         logger.warning(f"Could not analyze PDF fonts: {e}")
         return False
 
-def _process_extracted_text(text: str) -> str:
-    """Process extracted text with Kannada-specific handling."""
+def _extract_text_with_encoding_detection(pdf_path: str) -> tuple[str, bool]:
+    """Extract text and detect encoding issues."""
+    extracted_text = ""
+    has_legacy_fonts = False
+    
+    try:
+        # First check for legacy fonts
+        has_legacy_fonts = _detect_legacy_fonts_in_pdf(pdf_path)
+        
+        # Try multiple extraction methods
+        with pdfplumber.open(pdf_path) as pdf:
+            for page_num, page in enumerate(pdf.pages, 1):
+                logger.debug(f"Extracting text from page {page_num}")
+                
+                # Primary extraction method
+                page_text = page.extract_text() or ""
+                
+                # If no text, try with different layout parameters
+                if not page_text.strip():
+                    page_text = page.extract_text(
+                        layout=True,
+                        x_tolerance=3,
+                        y_tolerance=3
+                    ) or ""
+                
+                if page_text.strip():
+                    extracted_text += page_text + "\n\n"
+                else:
+                    logger.warning(f"No text extracted from page {page_num}")
+        
+    except Exception as e:
+        logger.error(f"Error extracting text: {e}")
+    
+    return extracted_text, has_legacy_fonts
+
+def _process_extracted_text(text: str, has_legacy_fonts: bool = False) -> str:
+    """Process extracted text with comprehensive Kannada handling."""
     if not text.strip():
         return ""
     
-    # Detect if legacy encoding is present
-    is_legacy = detect_legacy_encoding(text)
+    logger.info(f"Processing text (legacy fonts: {has_legacy_fonts})")
+    logger.info(f"Sample raw text: '{text[:100]}...'")
     
-    # Process the text
-    processed = post_process_kannada_text(text, is_legacy=is_legacy)
+    # Step 1: Check if text is already good Unicode Kannada
+    if is_kannada_text(text) and not has_legacy_fonts:
+        logger.info("Text appears to be good Unicode Kannada - minimal processing")
+        # Just normalize and clean lightly
+        processed = normalize_unicode(text)
+        processed = re.sub(r'\s+', ' ', processed).strip()
+        return processed
     
-    # Validate output quality
-    is_valid, issues = validate_kannada_output(processed)
+    # Step 2: Only apply legacy conversion if fonts detected or text is clearly corrupted
+    is_legacy = has_legacy_fonts or detect_legacy_encoding(text)
+    
+    if is_legacy:
+        logger.info("Applying legacy font conversion")
+        text = convert_legacy_to_unicode(text)
+        text = post_process_kannada_text(text, is_legacy=True)
+    else:
+        logger.info("Applying light processing only")
+        # Light processing for digital PDFs
+        text = normalize_unicode(text)
+        text = re.sub(r'\s+', ' ', text).strip()
+    
+    # Step 3: Final validation
+    is_valid, issues = validate_kannada_output(text)
     if not is_valid:
         logger.warning(f"Text quality issues: {', '.join(issues)}")
+        
+        # Only try aggressive processing if text is really bad
+        if not is_kannada_text(text) and len(text) > 20:
+            logger.info("Attempting aggressive processing as fallback")
+            text = convert_legacy_to_unicode(text)
+            text = post_process_kannada_text(text, is_legacy=True)
     
-    return processed
+    logger.info(f"Final processed text sample: '{text[:100]}...'")
+    return text
 
 def _set_kannada_font(run):
     """Set appropriate font for Kannada text rendering."""
@@ -93,75 +152,6 @@ def _add_page_header(document: Document, page_num: int, total_pages: int):
     for run in header.runs:
         _set_kannada_font(run)
 
-def _extract_and_process_images(page, page_num: int, temp_dir: str, document: Document) -> int:
-    """Extract images from PDF page and add to document."""
-    images_added = 0
-    
-    try:
-        for img_index, img in enumerate(page.images):
-            try:
-                # Extract image with proper bounding box
-                bbox = (img["x0"], img["top"], img["x1"], img["bottom"])
-                cropped = page.crop(bbox).to_image(resolution=300)
-                img_path = os.path.join(temp_dir, f"page_{page_num}_img_{img_index}.png")
-                cropped.save(img_path, format="PNG")
-                
-                # Add image to document with appropriate sizing
-                img_width = min(Inches(6), Inches(img["width"] / 72))  # Convert points to inches
-                document.add_picture(img_path, width=img_width)
-                images_added += 1
-                
-                logger.info(f"Added image {img_index + 1} from page {page_num}")
-                
-            except Exception as e:
-                logger.warning(f"Failed to extract image {img_index} from page {page_num}: {e}")
-    
-    except Exception as e:
-        logger.warning(f"Error accessing images on page {page_num}: {e}")
-    
-    return images_added
-
-def _extract_and_process_tables(page, document: Document) -> int:
-    """Extract tables from PDF page and add to document."""
-    tables_added = 0
-    
-    try:
-        tables = page.extract_tables()
-        
-        for table_index, table in enumerate(tables):
-            if not table or not table[0]:  # Skip empty tables
-                continue
-                
-            try:
-                # Create Word table
-                docx_table = document.add_table(rows=len(table), cols=len(table[0]))
-                docx_table.style = 'Table Grid'
-                
-                for r_i, row in enumerate(table):
-                    for c_i, cell in enumerate(row):
-                        if c_i < len(docx_table.rows[r_i].cells):
-                            cell_text = cell or ""
-                            processed_text = _process_extracted_text(cell_text)
-                            
-                            cell_obj = docx_table.cell(r_i, c_i)
-                            cell_obj.text = processed_text
-                            
-                            # Set Kannada font for table cells
-                            for paragraph in cell_obj.paragraphs:
-                                for run in paragraph.runs:
-                                    _set_kannada_font(run)
-                
-                tables_added += 1
-                logger.info(f"Added table {table_index + 1} with {len(table)} rows")
-                
-            except Exception as e:
-                logger.warning(f"Failed to process table {table_index}: {e}")
-    
-    except Exception as e:
-        logger.warning(f"Error extracting tables: {e}")
-    
-    return tables_added
-
 def convert_pdf_to_word(
     input_pdf_path: str,
     output_docx_path: str,
@@ -169,16 +159,11 @@ def convert_pdf_to_word(
     *,
     title: str | None = None,
     author: str | None = None,
-    force_ocr: bool = False,
 ) -> tuple[str, str]:
-    """Convert a digital PDF file to a Word document with enhanced Kannada support.
+    """Convert a digital PDF file to a Word document with enhanced Kannada support."""
 
-    Parameters
-    ----------
-    force_ocr : bool
-        If True, skip text extraction validation and always fall back to OCR.
-    """
-
+    logger.info(f"Starting digital PDF conversion: {input_pdf_path}")
+    
     # Initialize document
     document = Document()
 
@@ -194,121 +179,66 @@ def convert_pdf_to_word(
         core.author = author
     core.language = "kn-IN"  # Kannada locale
 
-    if force_ocr:
-        logger.info("Force OCR enabled - using OCR pipeline")
-        return ocr_pdf_to_word(
-            input_pdf_path,
-            output_docx_path,
-            output_txt_path,
-            title=title,
-            author=author,
-        )
-
-    # Check for legacy fonts
-    has_legacy_fonts = _detect_legacy_fonts_in_pdf(input_pdf_path)
-    if has_legacy_fonts:
-        logger.info("Legacy Kannada fonts detected in PDF")
-
     # Validate PDF
     try:
         reader = PdfReader(input_pdf_path, strict=False)
         total_pages = len(reader.pages)
+        logger.info(f"PDF has {total_pages} pages")
     except PdfReadError as exc:
         raise ValueError("Uploaded file is not a valid PDF.") from exc
 
-    full_text = ""
-    raw_full_text = ""
-    processed_pages = 0
-    total_images = 0
-    total_tables = 0
-
+    # Extract text with encoding detection
     try:
-        with TemporaryDirectory() as temp_dir, pdfplumber.open(input_pdf_path) as pdf:
-            logger.info(f"Processing {total_pages} pages from PDF")
+        raw_text, has_legacy_fonts = _extract_text_with_encoding_detection(input_pdf_path)
+        
+        if not raw_text.strip():
+            logger.warning("No text extracted from PDF - might be scanned")
+            # Add helpful message to document
+            no_text_msg = (
+                "ಈ PDF ಯಿಂದ ಯಾವುದೇ ಪಠ್ಯವನ್ನು ಹೊರತೆಗೆಯಲಾಗಲಿಲ್ಲ. "
+                "ಇದು ಸ್ಕ್ಯಾನ್ ಮಾಡಿದ PDF ಆಗಿರಬಹುದು. "
+                "'Scanned PDF' ಮೋಡ್ ಅನ್ನು ಪ್ರಯತ್ನಿಸಿ."
+            )
+            warning_para = document.add_paragraph(no_text_msg)
+            for run in warning_para.runs:
+                _set_kannada_font(run)
+                run.bold = True
             
-            for page_num, page in enumerate(pdf.pages, start=1):
-                logger.info(f"Processing page {page_num}/{total_pages}")
+            full_text = no_text_msg
+        else:
+            # Process the extracted text
+            processed_text = _process_extracted_text(raw_text, has_legacy_fonts)
+            
+            if processed_text.strip():
+                # Add processed text to document
+                text_paragraph = document.add_paragraph(processed_text)
                 
-                # Add page header
-                _add_page_header(document, page_num, total_pages)
+                # Set Kannada font for all runs
+                for run in text_paragraph.runs:
+                    _set_kannada_font(run)
                 
-                # Extract and process images first
-                images_on_page = _extract_and_process_images(page, page_num, temp_dir, document)
-                total_images += images_on_page
-                
-                # Extract text
-                raw_text = page.extract_text() or ""
-                raw_full_text += raw_text + "\n\n"
-                
-                if raw_text.strip():
-                    # Process text with Kannada-specific handling
-                    processed_text = _process_extracted_text(raw_text)
-                    full_text += processed_text + "\n\n"
-                    
-                    # Add text to document
-                    if processed_text.strip():
-                        text_paragraph = document.add_paragraph(processed_text)
-                        
-                        # Set Kannada font for all runs
-                        for run in text_paragraph.runs:
-                            _set_kannada_font(run)
-                        
-                        processed_pages += 1
-                    else:
-                        document.add_paragraph("(ಈ ಪುಟದಲ್ಲಿ ಯಾವುದೇ ಪಠ್ಯ ಪತ್ತೆಯಾಗಿಲ್ಲ)")
-                else:
-                    document.add_paragraph("(ಈ ಪುಟದಲ್ಲಿ ಯಾವುದೇ ಪಠ್ಯ ಪತ್ತೆಯಾಗಿಲ್ಲ)")
-                
-                # Extract and process tables
-                tables_on_page = _extract_and_process_tables(page, document)
-                total_tables += tables_on_page
-                
-                # Add page break except for last page
-                if page_num < total_pages:
-                    document.add_page_break()
-
-        logger.info(f"Successfully processed {processed_pages}/{total_pages} pages")
-        logger.info(f"Extracted {total_images} images and {total_tables} tables")
-
-        # Validate Kannada content across all pages
-        if not is_kannada_text(full_text) or force_ocr:
-            candidate_text = convert_legacy_to_unicode(raw_full_text)
-            if not force_ocr and is_kannada_text(candidate_text):
-                logger.info("Legacy conversion yielded valid Kannada text")
-                full_text = normalize_unicode(candidate_text)
+                full_text = processed_text
+                logger.info("Text processing completed successfully")
             else:
-                logger.info("Falling back to OCR processing")
-                return ocr_pdf_to_word(
-                    input_pdf_path,
-                    output_docx_path,
-                    output_txt_path,
-                    title=title,
-                    author=author,
+                logger.error("Text processing returned empty result")
+                error_msg = (
+                    "ಪಠ್ಯ ಸಂಸ್ಕರಣೆಯಲ್ಲಿ ದೋಷ ಸಂಭವಿಸಿದೆ. "
+                    "PDF ಯಲ್ಲಿ ಪುರಾತನ ಫಾಂಟ್‌ಗಳಿರಬಹುದು."
                 )
+                error_para = document.add_paragraph(error_msg)
+                for run in error_para.runs:
+                    _set_kannada_font(run)
+                    run.italic = True
+                
+                full_text = error_msg
 
     except Exception as e:
         logger.error(f"Error during PDF processing: {e}")
-        raise
-
-    # Final text processing and validation
-    if full_text.strip():
-        full_text = normalize_unicode(full_text)
-        
-        # Final validation
-        is_valid, issues = validate_kannada_output(full_text)
-        if not is_valid:
-            logger.warning(f"Final output quality issues: {', '.join(issues)}")
-            
-        # Add warning if legacy fonts detected but no Kannada text found
-        if has_legacy_fonts and not is_kannada_text(full_text):
-            warning_msg = (
-                "ಎಚ್ಚರಿಕೆ: ಈ PDF ಯಲ್ಲಿ ಪುರಾತನ ಕನ್ನಡ ಫಾಂಟ್‌ಗಳಿವೆ. "
-                "ಉತ್ತಮ ಫಲಿತಾಂಶಗಳಿಗಾಗಿ OCR ಮೋಡ್ ಬಳಸಿ."
-            )
-            document.add_paragraph().add_run(warning_msg).bold = True
-    else:
-        logger.error("No text was extracted from the PDF")
-        full_text = "ಈ ದಾಖಲೆಯಿಂದ ಯಾವುದೇ ಪಠ್ಯವನ್ನು ಹೊರತೆಗೆಯಲಾಗಲಿಲ್ಲ."
+        error_msg = f"PDF ಸಂಸ್ಕರಣೆಯಲ್ಲಿ ದೋಷ: {str(e)}"
+        error_para = document.add_paragraph(error_msg)
+        for run in error_para.runs:
+            _set_kannada_font(run)
+        full_text = error_msg
 
     # Save Word document
     try:
