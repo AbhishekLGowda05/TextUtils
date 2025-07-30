@@ -1,6 +1,11 @@
 """Utility modules for Kannada text processing."""
 
-__all__ = ["pdf_to_word", "ocr_to_word", "legacy_kannada"]
+__all__ = [
+    "pdf_to_word",
+    "ocr_to_word",
+    "legacy_kannada",
+    "simple_pdf_converter",
+]
 
 from importlib import import_module
 
